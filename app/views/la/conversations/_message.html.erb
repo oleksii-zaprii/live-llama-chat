@@ -1,0 +1,14 @@
+<div class="la-message la-message--<%= message.sender_type %>">
+  <div class="la-message-bubble">
+    <span class="la-message-sender">
+      <%= case message.sender_type
+          when "customer" then "Customer"
+          when "ai" then "AI Assistant"
+          when "agent" then "You"
+          else message.sender_type.humanize
+          end %>
+    </span>
+    <p class="la-message-body"><%= message.body %></p>
+    <span class="la-message-time"><%= message.created_at.in_time_zone("Pacific Time (US & Canada)").strftime("%I:%M %p") %></span>
+  </div>
+</div>

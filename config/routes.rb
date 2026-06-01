@@ -1,14 +1,36 @@
 Rails.application.routes.draw do
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
-
-  # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
-  # Can be used by load balancers and uptime monitors to verify that the app is live.
+  # Health check
   get "up" => "rails/health#show", as: :rails_health_check
 
-  # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
-  # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
-  # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
+  # Action Cable WebSocket endpoint
+  mount ActionCable.server => "/cable"
 
-  # Defines the root path route ("/")
-  # root "posts#index"
+  # API for the embeddable JS widget (cross-origin)
+  namespace :api do
+    resources :conversations, only: [ :create ] do
+      get :messages, path: "messages/:token", on: :collection
+    end
+    # Handle CORS preflight OPTIONS requests
+    match "conversations", to: "conversations#options", via: :options
+    match "conversations/*path", to: "conversations#options", via: :options
+  end
+
+  # Convenience: GET /api/conversations/:token/messages
+  get "api/conversations/:token/messages", to: "api/conversations#messages", as: :api_conversation_messages
+
+  # Loan Advocate (LA) Portal
+  namespace :la do
+    resource :session, only: %i[new create destroy]
+    resource :dashboard, only: [:show], controller: "dashboard"
+    resources :conversations, only: %i[show] do
+      member do
+        patch :accept
+        patch :close
+        post  :send_message
+      end
+    end
+  end
+
+  # Root redirects to LA portal login for now
+  root "la/sessions#new"
 end

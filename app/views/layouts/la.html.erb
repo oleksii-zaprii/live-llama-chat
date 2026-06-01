@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OppLoans LA Portal</title>
+    <meta name="description" content="OppLoans Loan Advocate portal for managing live customer chats.">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <%= stylesheet_link_tag "la_portal", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+  <body class="la-body">
+    <% if current_la_user %>
+      <aside class="la-sidebar">
+        <div class="la-sidebar-brand">
+          <div class="la-brand-logo">OL</div>
+          <div class="la-brand-text">
+            <span class="la-brand-name">OppLoans</span>
+            <span class="la-brand-role">Loan Advocate Portal</span>
+          </div>
+        </div>
+
+        <nav class="la-nav">
+          <%= link_to la_dashboard_path, class: "la-nav-item #{'active' if controller_name == 'dashboard'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="la-nav-icon">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+            </svg>
+            Dashboard
+          <% end %>
+        </nav>
+
+        <div class="la-sidebar-footer">
+          <div class="la-agent-info">
+            <div class="la-agent-avatar"><%= current_la_user.name[0].upcase %></div>
+            <div class="la-agent-details">
+              <span class="la-agent-name"><%= current_la_user.name %></span>
+              <div class="la-status-row">
+                <div class="la-status-dot la-status-<%= current_la_user.availability_status %>"></div>
+                <span class="la-status-label"><%= current_la_user.availability_status.humanize %></span>
+              </div>
+            </div>
+          </div>
+          <%= button_to la_session_path, method: :delete, class: "la-signout-btn", form: { data: { turbo: false } } do %>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="la-nav-icon">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25" />
+            </svg>
+            Sign Out
+          <% end %>
+        </div>
+      </aside>
+    <% end %>
+
+    <main class="la-main <%= 'la-main-full' unless current_la_user %>">
+      <% if notice.present? %>
+        <div class="la-flash la-flash-success" id="flash-notice"><%= notice %></div>
+      <% end %>
+      <% if alert.present? %>
+        <div class="la-flash la-flash-error" id="flash-alert"><%= alert %></div>
+      <% end %>
+
+      <%= yield %>
+    </main>
+
+    <script>
+      // Auto-dismiss flash messages
+      setTimeout(() => {
+        document.querySelectorAll('.la-flash').forEach(el => {
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(-10px)';
+          setTimeout(() => el.remove(), 300);
+        });
+      }, 4000);
+    </script>
+  </body>
+</html>

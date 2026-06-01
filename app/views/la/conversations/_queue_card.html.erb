@@ -1,0 +1,19 @@
+<div class="la-queue-card" id="queue-conv-<%= conversation.id %>">
+  <div class="la-queue-card-header">
+    <div class="la-customer-avatar"><%= (conversation.customer_name.presence || "?")[0].upcase %></div>
+    <div class="la-customer-info">
+      <span class="la-customer-name"><%= conversation.customer_name.presence || "Anonymous" %></span>
+      <span class="la-customer-email"><%= conversation.customer_email.presence || "No email provided" %></span>
+    </div>
+    <span class="la-status-pill la-status-pill--waiting">Waiting</span>
+  </div>
+  <div class="la-queue-card-meta">
+    <span class="la-wait-time">⏱ <%= time_ago_in_words(conversation.updated_at) %> ago</span>
+  </div>
+  <div class="la-queue-card-actions">
+    <%= button_to "Accept Chat", accept_la_conversation_path(conversation),
+        method: :patch,
+        class: "la-btn la-btn-sm la-btn-primary",
+        data: { turbo: false } %>
+  </div>
+</div>
