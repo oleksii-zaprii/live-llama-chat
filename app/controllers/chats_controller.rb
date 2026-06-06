@@ -14,7 +14,7 @@ class ChatsController < ApplicationController
   def create
     prompt = params.dig(:chat, :prompt)
     if prompt.present?
-      @chat = Chat.create!(model: "gemma4:e2b", provider: :ollama)
+      @chat = Chat.create!(model: "opploans-chat", provider: :ollama)
       ChatResponseJob.perform_later(@chat.id, prompt)
 
       redirect_to @chat, notice: "Chat was successfully created."
