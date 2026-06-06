@@ -1,9 +1,7 @@
 class OllamaClient
-  SYSTEM_PROMPT = Rails.root.join("config/prompts/opploans_system_prompt.txt").read.freeze
-
   def initialize
     @base_url = ENV.fetch("OLLAMA_BASE_URL", "http://localhost:11434")
-    @model    = ENV.fetch("OLLAMA_MODEL", "gemma4:e2b")
+    @model    = ENV.fetch("OLLAMA_MODEL", "opploans-chat:latest")
     @conn     = Faraday.new(url: @base_url) do |f|
       f.request  :json
       f.response :json
@@ -35,7 +33,7 @@ class OllamaClient
   private
 
   def build_messages(conversation)
-    history = conversation.messages.chronological.map do |msg|
+    conversation.messages.chronological.map do |msg|
       role = case msg.sender_type
              when "customer" then "user"
              when "ai"       then "assistant"
@@ -43,7 +41,5 @@ class OllamaClient
              end
       { role: role, content: msg.body }
     end
-
-    [{ role: "system", content: SYSTEM_PROMPT }] + history
   end
 end

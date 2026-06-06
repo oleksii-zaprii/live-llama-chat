@@ -1,5 +1,8 @@
 <!-- LA Conversation Chat Panel -->
-<div class="la-chat-wrapper">
+<div class="la-chat-wrapper"
+     data-controller="la-conversation"
+     data-la-conversation-conversation-id-value="<%= @conversation.id %>"
+     data-la-conversation-send-message-url-value="<%= send_message_la_conversation_path(@conversation) %>">
   <!-- Chat Header -->
   <div class="la-chat-header">
     <div class="la-chat-customer">
@@ -26,7 +29,7 @@
   </div>
 
   <!-- Message History -->
-  <div class="la-chat-messages" id="la-chat-messages">
+  <div class="la-chat-messages" id="la-chat-messages" data-la-conversation-target="messages">
     <% if @messages.empty? %>
       <div class="la-chat-empty">No messages yet.</div>
     <% else %>
@@ -40,7 +43,7 @@
   <% if @conversation.agent_managed? && @conversation.assigned_agent_id == current_la_user.id %>
     <div class="la-chat-input-area">
       <%= form_with url: send_message_la_conversation_path(@conversation), method: :post,
-          id: "la-message-form", data: { turbo: false } do |f| %>
+          html: { id: "la-message-form", data: { action: "submit->la-conversation#submitMessage" } } do |f| %>
         <div class="la-chat-input-row">
           <textarea
             id="la-message-body"
@@ -49,6 +52,8 @@
             placeholder="Type your message to the customer..."
             rows="1"
             required
+            data-la-conversation-target="textarea"
+            data-action="keydown->la-conversation#keydown input->la-conversation#resizeTextarea"
           ></textarea>
           <button type="submit" class="la-btn la-btn-send" id="la-send-btn">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:20px;height:20px;">
@@ -71,73 +76,3 @@
     </div>
   <% end %>
 </div>
-
-<script>
-(function() {
-  const messagesEl = document.getElementById('la-chat-messages');
-  const form = document.getElementById('la-message-form');
-  const textarea = document.getElementById('la-message-body');
-
-  // Scroll to bottom on load
-  if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
-
-  // Enter key to submit (Shift+Enter for newline)
-  if (textarea) {
-    textarea.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        form?.requestSubmit();
-      }
-    });
-    // Auto-resize textarea
-    textarea.addEventListener('input', function() {
-      this.style.height = 'auto';
-      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-    });
-  }
-
-  // Real-time incoming messages via Action Cable
-  const conversationId = <%= @conversation.id %>;
-  if (typeof ActionCable !== 'undefined') {
-    const consumer = ActionCable.createConsumer('/cable');
-    consumer.subscriptions.create(
-      { channel: 'LaConversationChannel', conversation_id: conversationId },
-      {
-        received(data) {
-          if (data.type === 'message') {
-            appendMessage(data.message);
-          }
-        }
-      }
-    );
-  }
-
-  function appendMessage(msg) {
-    const div = document.createElement('div');
-    div.className = 'la-message la-message--' + msg.sender_type;
-    div.innerHTML = `
-      <div class="la-message-bubble">
-        <span class="la-message-sender">${senderLabel(msg.sender_type)}</span>
-        <p class="la-message-body">${escapeHtml(msg.body)}</p>
-        <span class="la-message-time">${formatTime(msg.created_at)}</span>
-      </div>
-    `;
-    messagesEl?.appendChild(div);
-    if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-
-  function senderLabel(type) {
-    return { customer: 'Customer', ai: 'AI Assistant', agent: 'You' }[type] || type;
-  }
-
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
-  function formatTime(iso) {
-    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }
-})();
-</script>

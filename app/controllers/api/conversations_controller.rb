@@ -27,14 +27,28 @@ class Api::ConversationsController < ApplicationController
   def messages
     conversation = Conversation.find_by!(session_token: params[:token])
 
-    render json: {
-      conversation_id: conversation.id,
-      status:          conversation.status,
-      assigned_agent:  conversation.assigned_agent&.name,
-      messages: conversation.messages.chronological.map do |m|
-        { id: m.id, sender_type: m.sender_type, body: m.body, created_at: m.created_at.iso8601 }
-      end
-    }
+    render json: conversation_json(conversation)
+  rescue ActiveRecord::RecordNotFound
+    render json: { error: "Conversation not found" }, status: :not_found
+  end
+
+  # POST /api/conversations/:token/messages
+  # Send a customer message (HTTP fallback alongside Action Cable)
+  def create_message
+    conversation = Conversation.find_by!(session_token: params[:token])
+    body = params[:body].to_s.strip
+
+    if body.blank?
+      return render json: { error: "Message body is required" }, status: :unprocessable_entity
+    end
+
+    if conversation.closed?
+      return render json: { error: "Conversation is closed" }, status: :unprocessable_entity
+    end
+
+    CustomerMessageProcessor.new(conversation, body).call
+
+    render json: conversation_json(conversation.reload)
   rescue ActiveRecord::RecordNotFound
     render json: { error: "Conversation not found" }, status: :not_found
   end
@@ -44,6 +58,17 @@ class Api::ConversationsController < ApplicationController
   end
 
   private
+
+  def conversation_json(conversation)
+    {
+      conversation_id: conversation.id,
+      status: conversation.status,
+      assigned_agent: conversation.assigned_agent&.name,
+      messages: conversation.messages.chronological.map do |m|
+        { id: m.id, sender_type: m.sender_type, body: m.body, created_at: m.created_at.iso8601 }
+      end
+    }
+  end
 
   def set_cors_headers
     response.headers["Access-Control-Allow-Origin"]  = ENV.fetch("WIDGET_ALLOWED_ORIGIN", "*")

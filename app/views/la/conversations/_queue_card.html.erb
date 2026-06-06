@@ -8,12 +8,14 @@
     <span class="la-status-pill la-status-pill--waiting">Waiting</span>
   </div>
   <div class="la-queue-card-meta">
-    <span class="la-wait-time">⏱ <%= time_ago_in_words(conversation.updated_at) %> ago</span>
+    <span class="la-wait-time"><%= time_ago_in_words(conversation.updated_at) %> ago</span>
   </div>
   <div class="la-queue-card-actions">
-    <%= button_to "Accept Chat", accept_la_conversation_path(conversation),
-        method: :patch,
-        class: "la-btn la-btn-sm la-btn-primary",
-        data: { turbo: false } %>
+    <button type="button"
+            class="la-btn la-btn-sm la-btn-primary"
+            data-action="click->la-queue#acceptChat"
+            data-accept-url="<%= accept_la_conversation_path(conversation) %>">
+      Accept Chat
+    </button>
   </div>
 </div>

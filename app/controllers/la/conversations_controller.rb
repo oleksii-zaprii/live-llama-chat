@@ -11,6 +11,31 @@ class La::ConversationsController < ApplicationController
   def accept
     if @conversation.awaiting_agent?
       @conversation.accept_by!(current_la_user)
+
+      ActionCable.server.broadcast(
+        "la_queue",
+        { type: "queue_update", action: "remove", conversation_id: @conversation.id, reason: "accepted" }
+      )
+
+      join_message = @conversation.messages.create!(
+        sender_type: "ai",
+        body: "#{current_la_user.name} has joined the chat and is ready to help you."
+      )
+
+      ActionCable.server.broadcast(
+        "conversation_#{@conversation.session_token}",
+        {
+          type: "message",
+          message: {
+            id: join_message.id,
+            sender_type: join_message.sender_type,
+            body: join_message.body,
+            created_at: join_message.created_at.iso8601
+          },
+          conversation_status: @conversation.status
+        }
+      )
+
       redirect_to la_conversation_path(@conversation), notice: "Chat accepted. You're now connected with the customer."
     else
       redirect_to la_dashboard_path, alert: "This conversation is no longer available."
@@ -42,31 +67,46 @@ class La::ConversationsController < ApplicationController
   # POST /la/conversations/:id/messages
   def send_message
     body = params[:body].to_s.strip
-    return redirect_to la_conversation_path(@conversation), alert: "Message cannot be blank." if body.blank?
-    return redirect_to la_conversation_path(@conversation), alert: "Not authorized." unless @conversation.assigned_agent_id == current_la_user.id
+    if body.blank?
+      return respond_to do |format|
+        format.html { redirect_to la_conversation_path(@conversation), alert: "Message cannot be blank." }
+        format.json { render json: { error: "Message cannot be blank." }, status: :unprocessable_entity }
+      end
+    end
+
+    unless @conversation.assigned_agent_id == current_la_user.id
+      return respond_to do |format|
+        format.html { redirect_to la_conversation_path(@conversation), alert: "Not authorized." }
+        format.json { render json: { error: "Not authorized." }, status: :forbidden }
+      end
+    end
 
     msg = @conversation.messages.create!(sender_type: "agent", body: body)
+    payload = {
+      id: msg.id,
+      sender_type: msg.sender_type,
+      body: msg.body,
+      created_at: msg.created_at.iso8601
+    }
 
-    # Push to customer widget
     ActionCable.server.broadcast(
       "conversation_#{@conversation.session_token}",
       {
         type: "message",
-        message: { id: msg.id, sender_type: msg.sender_type, body: msg.body, created_at: msg.created_at.iso8601 },
+        message: payload,
         conversation_status: @conversation.status
       }
     )
 
-    # Echo to LA panel (Turbo Stream)
     ActionCable.server.broadcast(
       "la_conversation_#{@conversation.id}",
-      {
-        type: "message",
-        message: { id: msg.id, sender_type: msg.sender_type, body: msg.body, created_at: msg.created_at.iso8601 }
-      }
+      { type: "message", message: payload }
     )
 
-    redirect_to la_conversation_path(@conversation)
+    respond_to do |format|
+      format.html { redirect_to la_conversation_path(@conversation) }
+      format.json { render json: { message: payload } }
+    end
   end
 
   private

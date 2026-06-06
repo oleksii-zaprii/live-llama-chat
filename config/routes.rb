@@ -15,8 +15,9 @@ Rails.application.routes.draw do
     match "conversations/*path", to: "conversations#options", via: :options
   end
 
-  # Convenience: GET /api/conversations/:token/messages
-  get "api/conversations/:token/messages", to: "api/conversations#messages", as: :api_conversation_messages
+  # Convenience routes for widget message API
+  get  "api/conversations/:token/messages", to: "api/conversations#messages", as: :api_conversation_messages
+  post "api/conversations/:token/messages", to: "api/conversations#create_message", as: :api_conversation_create_message
 
   # Loan Advocate (LA) Portal
   namespace :la do
@@ -33,4 +34,10 @@ Rails.application.routes.draw do
 
   # Root redirects to LA portal login for now
   root "la/sessions#new"
+
+  if Rails.env.development?
+    namespace :dev do
+      resource :chat_simulator, only: [:show], controller: "chat_simulator"
+    end
+  end
 end
