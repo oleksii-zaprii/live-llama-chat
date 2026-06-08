@@ -1,0 +1,12 @@
+awaiting:
+  status: awaiting_agent
+  customer_name: Waiting Customer
+  customer_email: wait@example.com
+  session_token: awaiting-session-token
+
+agent_managed:
+  status: agent_managed
+  customer_name: Active Customer
+  customer_email: active@example.com
+  session_token: active-session-token
+  assigned_agent: loan_advocate

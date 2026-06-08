@@ -1,0 +1,6 @@
+loan_advocate:
+  email: agent@opploans.com
+  name: Jane Doe
+  password_digest: <%= BCrypt::Password.create("password") %>
+  role: loan_advocate
+  availability_status: online

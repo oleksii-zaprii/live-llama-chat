@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dev Chat Simulator — OppLoans</title>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+    <style>
+      body { font-family: Inter, system-ui, sans-serif; margin: 0; background: #f4f6f8; color: #1a1a1a; }
+      .dev-chat-page { max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+      .dev-chat-header { margin-bottom: 1rem; }
+      .dev-chat-header h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
+      .dev-chat-header p { margin: 0; color: #666; }
+      .dev-chat-panel { background: #fff; border: 1px solid #ddd; border-radius: 12px; overflow: hidden; }
+      .dev-chat-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: #0b3d91; color: #fff; font-size: 0.875rem; }
+      .dev-chat-messages { min-height: 320px; max-height: 480px; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+      .dev-chat-message { max-width: 85%; padding: 0.75rem 1rem; border-radius: 12px; }
+      .dev-chat-message--customer { align-self: flex-end; background: #0b3d91; color: #fff; }
+      .dev-chat-message--ai, .dev-chat-message--agent { align-self: flex-start; background: #eef2f7; }
+      .dev-chat-sender { display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; opacity: 0.8; }
+      .dev-chat-body { margin: 0; white-space: pre-wrap; }
+      .dev-chat-system { align-self: center; font-size: 0.875rem; color: #666; font-style: italic; }
+      .dev-chat-start, .dev-chat-input { padding: 1rem; border-top: 1px solid #eee; }
+      .dev-chat-start label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; }
+      .dev-chat-start input { width: 100%; padding: 0.5rem 0.75rem; margin-bottom: 0.75rem; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+      .dev-chat-input-row { display: flex; gap: 0.5rem; }
+      .dev-chat-input textarea { flex: 1; min-height: 44px; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px; resize: vertical; font: inherit; }
+      .dev-chat-btn { padding: 0.625rem 1rem; border: none; border-radius: 8px; background: #0b3d91; color: #fff; font: inherit; cursor: pointer; }
+      .dev-chat-btn-secondary { background: #666; }
+      .dev-chat-links { margin-top: 1rem; font-size: 0.875rem; }
+      .dev-chat-links a { color: #0b3d91; }
+    </style>
+  </head>
+  <body>
+    <div class="dev-chat-page">
+      <div class="dev-chat-header">
+        <h1>Dev Chat Simulator</h1>
+        <p>Simulates the customer widget for testing the LA portal without an embeddable script.</p>
+      </div>
+
+      <div class="dev-chat-panel" data-controller="dev-chat-simulator">
+        <div class="dev-chat-toolbar">
+          <span data-dev-chat-simulator-target="status">Not connected</span>
+          <button type="button" class="dev-chat-btn dev-chat-btn-secondary" data-action="click->dev-chat-simulator#resetSession">Reset Session</button>
+        </div>
+
+        <div class="dev-chat-messages" data-dev-chat-simulator-target="messages"></div>
+
+        <form class="dev-chat-start" data-dev-chat-simulator-target="startForm" data-action="submit->dev-chat-simulator#startChat">
+          <label for="customer_name">Your name</label>
+          <input type="text" id="customer_name" name="customer_name" placeholder="Jane Customer">
+
+          <label for="customer_email">Email (optional)</label>
+          <input type="email" id="customer_email" name="customer_email" placeholder="jane@example.com">
+
+          <button type="submit" class="dev-chat-btn">Start Chat</button>
+        </form>
+
+        <form class="dev-chat-input" data-dev-chat-simulator-target="input" data-action="submit->dev-chat-simulator#sendMessage" style="display: none;">
+          <div class="dev-chat-input-row">
+            <textarea data-dev-chat-simulator-target="textarea" placeholder="Type a message to the AI assistant..." rows="2"></textarea>
+            <button type="submit" class="dev-chat-btn">Send</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="dev-chat-links">
+        <a href="<%= la_dashboard_path %>">Open LA Portal Dashboard →</a>
+      </div>
+    </div>
+  </body>
+</html>

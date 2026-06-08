@@ -1,0 +1,78 @@
+<!-- LA Conversation Chat Panel -->
+<div class="la-chat-wrapper"
+     data-controller="la-conversation"
+     data-la-conversation-conversation-id-value="<%= @conversation.id %>"
+     data-la-conversation-send-message-url-value="<%= send_message_la_conversation_path(@conversation) %>">
+  <!-- Chat Header -->
+  <div class="la-chat-header">
+    <div class="la-chat-customer">
+      <div class="la-customer-avatar la-customer-avatar--lg">
+        <%= (@conversation.customer_name.presence || "?")[0].upcase %>
+      </div>
+      <div>
+        <h2 class="la-chat-customer-name"><%= @conversation.customer_name.presence || "Anonymous Customer" %></h2>
+        <p class="la-chat-customer-email"><%= @conversation.customer_email.presence || "No email" %></p>
+      </div>
+    </div>
+    <div class="la-chat-header-actions">
+      <span class="la-status-pill la-status-pill--<%= @conversation.status.dasherize %>">
+        <%= @conversation.status.humanize %>
+      </span>
+      <% if @conversation.agent_managed? && @conversation.assigned_agent_id == current_la_user.id %>
+        <%= button_to "Close Chat", close_la_conversation_path(@conversation),
+            method: :patch,
+            class: "la-btn la-btn-sm la-btn-danger",
+            data: { turbo: false, confirm: "Close this conversation?" } %>
+      <% end %>
+      <%= link_to "← Dashboard", la_dashboard_path, class: "la-btn la-btn-sm la-btn-ghost" %>
+    </div>
+  </div>
+
+  <!-- Message History -->
+  <div class="la-chat-messages" id="la-chat-messages" data-la-conversation-target="messages">
+    <% if @messages.empty? %>
+      <div class="la-chat-empty">No messages yet.</div>
+    <% else %>
+      <% @messages.each do |message| %>
+        <%= render "la/conversations/message", message: message %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <!-- Message Input -->
+  <% if @conversation.agent_managed? && @conversation.assigned_agent_id == current_la_user.id %>
+    <div class="la-chat-input-area">
+      <%= form_with url: send_message_la_conversation_path(@conversation), method: :post,
+          html: { id: "la-message-form", data: { action: "submit->la-conversation#submitMessage" } } do |f| %>
+        <div class="la-chat-input-row">
+          <textarea
+            id="la-message-body"
+            name="body"
+            class="la-chat-textarea"
+            placeholder="Type your message to the customer..."
+            rows="1"
+            required
+            data-la-conversation-target="textarea"
+            data-action="keydown->la-conversation#keydown input->la-conversation#resizeTextarea"
+          ></textarea>
+          <button type="submit" class="la-btn la-btn-send" id="la-send-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:20px;height:20px;">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+            </svg>
+          </button>
+        </div>
+        <p class="la-chat-hint">Press Enter to send, Shift+Enter for new line</p>
+      <% end %>
+    </div>
+  <% elsif @conversation.awaiting_agent? %>
+    <div class="la-chat-accept-banner">
+      <p>This conversation is waiting for an agent.</p>
+      <%= button_to "Accept This Chat", accept_la_conversation_path(@conversation),
+          method: :patch, class: "la-btn la-btn-primary", data: { turbo: false } %>
+    </div>
+  <% else %>
+    <div class="la-chat-closed-banner">
+      <p>This conversation is <%= @conversation.status.humanize.downcase %>.</p>
+    </div>
+  <% end %>
+</div>

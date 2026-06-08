@@ -1,0 +1,21 @@
+<div class="la-queue-card" id="queue-conv-<%= conversation.id %>">
+  <div class="la-queue-card-header">
+    <div class="la-customer-avatar"><%= (conversation.customer_name.presence || "?")[0].upcase %></div>
+    <div class="la-customer-info">
+      <span class="la-customer-name"><%= conversation.customer_name.presence || "Anonymous" %></span>
+      <span class="la-customer-email"><%= conversation.customer_email.presence || "No email provided" %></span>
+    </div>
+    <span class="la-status-pill la-status-pill--waiting">Waiting</span>
+  </div>
+  <div class="la-queue-card-meta">
+    <span class="la-wait-time"><%= time_ago_in_words(conversation.updated_at) %> ago</span>
+  </div>
+  <div class="la-queue-card-actions">
+    <button type="button"
+            class="la-btn la-btn-sm la-btn-primary"
+            data-action="click->la-queue#acceptChat"
+            data-accept-url="<%= accept_la_conversation_path(conversation) %>">
+      Accept Chat
+    </button>
+  </div>
+</div>
