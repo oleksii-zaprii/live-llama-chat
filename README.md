@@ -45,7 +45,7 @@ Open:
 ## Architecture
 
 1. Customer starts chat via widget API or dev simulator → `Conversation` in `ai_managed` status
-2. Messages go through Action Cable (`ConversationChannel`) → `ProcessAiResponseJob` calls Ollama
+2. Messages go through HTTP API or Action Cable → `CustomerMessageProcessor` → `ProcessAiResponseJob` → `OllamaClient` (Faraday, no ruby_llm gem)
 3. On handover (keyword, AI decision, or Ollama failure) → status `awaiting_agent`, LA dashboard queue updates live
 4. Loan Advocate accepts → `agent_managed`, real-time chat via `LaConversationChannel`
 5. Inactive chats closed by `SessionTimeoutJob` (every 5 minutes)

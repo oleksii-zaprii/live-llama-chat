@@ -40,7 +40,8 @@ class CustomerMessageProcessor
 
     case @conversation.status
     when "ai_managed"
-      ProcessAiResponseJob.perform_later(@conversation.id)
+      broadcast_ai_thinking
+      enqueue_ai_response
     when "agent_managed"
       broadcast_to_la_conversation(msg)
     end
@@ -62,6 +63,25 @@ class CustomerMessageProcessor
       "la_conversation_#{@conversation.id}",
       { type: "message", message: message_payload(message) }
     )
+  end
+
+  def broadcast_ai_thinking
+    ActionCable.server.broadcast(
+      "conversation_#{@conversation.session_token}",
+      {
+        type: "ai_thinking",
+        model: ENV.fetch("OLLAMA_MODEL", "opploans-chat:latest")
+      }
+    )
+  end
+
+  # Run inline in development so Ollama replies appear reliably (async + SQLite is flaky).
+  def enqueue_ai_response
+    if Rails.env.development?
+      ProcessAiResponseJob.perform_now(@conversation.id)
+    else
+      ProcessAiResponseJob.perform_later(@conversation.id)
+    end
   end
 
   def broadcast_to_la_queue
