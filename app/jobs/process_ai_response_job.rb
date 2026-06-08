@@ -7,14 +7,8 @@ class ProcessAiResponseJob < ApplicationJob
     conversation = Conversation.find_by(id: conversation_id)
     return unless conversation&.ai_managed?
 
-    begin
-      response_text = OllamaClient.new.chat(conversation)
-    rescue => e
-      Rails.logger.error "[ProcessAiResponseJob] Ollama error: #{e.message}"
-      # Fallback: trigger handover so a human can pick up
-      handle_handover(conversation, "I'm having trouble connecting right now. Let me connect you with one of our Loan Advocates who can help immediately.")
-      return
-    end
+    response_text = fetch_ai_response(conversation)
+    return if response_text.nil?
 
     if response_text.start_with?(HANDOVER_TOKEN)
       clean_message = response_text.sub(HANDOVER_TOKEN, "").strip
@@ -26,19 +20,26 @@ class ProcessAiResponseJob < ApplicationJob
 
   private
 
+  def fetch_ai_response(conversation)
+    OllamaClient.new.chat(conversation)
+  rescue => e
+    Rails.logger.error "[ProcessAiResponseJob] Ollama error for conversation ##{conversation.id}: #{e.message}"
+    handle_handover(
+      conversation,
+      "I'm having trouble connecting right now. Let me connect you with one of our Loan Advocates who can help immediately."
+    )
+    nil
+  end
+
   def handle_handover(conversation, message_to_customer)
     conversation.trigger_handover!
 
-    # Save the AI's parting message to the customer
     msg = conversation.messages.create!(
       sender_type: "ai",
       body: message_to_customer.presence || "I'm connecting you with a Loan Advocate now. Please hold on."
     )
 
-    # Broadcast the AI message down to the customer widget
     broadcast_to_widget(conversation, msg)
-
-    # Broadcast the new conversation card up to the LA dashboard queue
     broadcast_to_la_queue(conversation)
 
     Rails.logger.info "[ProcessAiResponseJob] Handover triggered for conversation ##{conversation.id}"
@@ -47,6 +48,7 @@ class ProcessAiResponseJob < ApplicationJob
   def save_and_broadcast_ai_message(conversation, text)
     msg = conversation.messages.create!(sender_type: "ai", body: text)
     broadcast_to_widget(conversation, msg)
+    Rails.logger.info "[ProcessAiResponseJob] AI reply sent for conversation ##{conversation.id} (#{text.length} chars)"
   end
 
   def broadcast_to_widget(conversation, message)
@@ -66,7 +68,6 @@ class ProcessAiResponseJob < ApplicationJob
   end
 
   def broadcast_to_la_queue(conversation)
-    # Broadcast a Turbo Stream append to the LA queue panel
     ActionCable.server.broadcast(
       "la_queue",
       {

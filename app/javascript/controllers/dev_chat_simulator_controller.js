@@ -2,9 +2,10 @@ import { Controller } from "@hotwired/stimulus"
 import { createConsumer } from "@rails/actioncable"
 
 export default class extends Controller {
-  static targets = ["messages", "status", "input", "textarea", "sendButton", "startForm"]
+  static targets = ["messages", "status", "input", "textarea", "startForm"]
   static values = {
-    cableUrl: { type: String, default: "/cable" }
+    cableUrl: { type: String, default: "/cable" },
+    ollamaModel: String
   }
 
   connect() {
@@ -54,6 +55,7 @@ export default class extends Controller {
     this.sessionToken = null
     this.subscription?.unsubscribe()
     this.consumer?.disconnect()
+    this.hideThinking()
     if (this.hasMessagesTarget) this.messagesTarget.innerHTML = ""
     if (this.hasStartFormTarget) {
       this.startFormTarget.style.display = "block"
@@ -73,7 +75,7 @@ export default class extends Controller {
       {
         connected: () => {
           if (this.hasStatusTarget) {
-            this.statusTarget.textContent = "Connected — listening for replies"
+            this.statusTarget.textContent = `Connected — ${this.ollamaModelValue || "Ollama"}`
           }
         },
         rejected: () => {
@@ -126,6 +128,10 @@ export default class extends Controller {
 
         this.textareaTarget.value = ""
         this.syncFromServer()
+
+        if (data.status === "ai_managed" && !this.isHandoverKeyword(body)) {
+          this.showThinking()
+        }
       })
       .finally(() => {
         if (sendButton) sendButton.disabled = false
@@ -133,15 +139,37 @@ export default class extends Controller {
   }
 
   received(data) {
-    if (data.type === "message" && data.message) {
+    if (data.type === "ai_thinking") {
+      this.showThinking(data.model)
+    } else if (data.type === "message" && data.message) {
+      this.hideThinking()
       this.appendMessage(data.message)
       if (data.conversation_status) {
         this.updateStatus(data.conversation_status)
       }
     } else if (data.type === "session_closed" || data.type === "session_timeout") {
+      this.hideThinking()
       if (this.hasStatusTarget) this.statusTarget.textContent = data.message
       this.appendSystemMessage(data.message)
     }
+  }
+
+  showThinking(model) {
+    this.hideThinking()
+    const el = document.createElement("div")
+    el.id = "dev-chat-thinking"
+    el.className = "dev-chat-thinking"
+    el.textContent = `AI Assistant is thinking (${model || this.ollamaModelValue || "Ollama"})…`
+    this.messagesTarget.appendChild(el)
+    this.messagesTarget.scrollTop = this.messagesTarget.scrollHeight
+  }
+
+  hideThinking() {
+    document.getElementById("dev-chat-thinking")?.remove()
+  }
+
+  isHandoverKeyword(body) {
+    return /\b(human|representative|lawyer|agent|speak|talk|person|supervisor|manager|escalate|escalation|help)\b/i.test(body)
   }
 
   updateStatus(status) {

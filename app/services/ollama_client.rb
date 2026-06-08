@@ -18,11 +18,14 @@ class OllamaClient
       model: @model,
       messages: messages,
       stream: false,
-      temperature: 0.7
+      temperature: 0.0
     })
 
     if response.success?
-      response.body.dig("choices", 0, "message", "content").to_s.strip
+      text = extract_content(response.body)
+      raise "Ollama returned an empty response" if text.blank?
+
+      text
     else
       raise "Ollama API error: #{response.status} — #{response.body}"
     end
@@ -32,13 +35,20 @@ class OllamaClient
 
   private
 
+  def extract_content(body)
+    message = body.dig("choices", 0, "message") || {}
+    message["content"].to_s.strip
+  end
+
   def build_messages(conversation)
-    conversation.messages.chronological.map do |msg|
+    conversation.messages.chronological.filter_map do |msg|
       role = case msg.sender_type
              when "customer" then "user"
              when "ai"       then "assistant"
              when "agent"    then "assistant"
              end
+      next if role.nil? || msg.body.blank?
+
       { role: role, content: msg.body }
     end
   end

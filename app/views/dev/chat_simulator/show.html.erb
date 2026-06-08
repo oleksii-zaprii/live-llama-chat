@@ -32,16 +32,29 @@
       .dev-chat-btn-secondary { background: #666; }
       .dev-chat-links { margin-top: 1rem; font-size: 0.875rem; }
       .dev-chat-links a { color: #0b3d91; }
+      .dev-chat-meta { margin-top: 0.5rem; font-size: 0.8125rem; color: #666; }
+      .dev-chat-meta--ok { color: #166534; }
+      .dev-chat-meta--error { color: #b91c1c; }
+      .dev-chat-thinking { align-self: flex-start; padding: 0.75rem 1rem; background: #eef2f7; border-radius: 12px; color: #666; font-size: 0.875rem; font-style: italic; }
     </style>
   </head>
   <body>
     <div class="dev-chat-page">
       <div class="dev-chat-header">
         <h1>Dev Chat Simulator</h1>
-        <p>Simulates the customer widget for testing the LA portal without an embeddable script.</p>
+        <p>Simulates the customer widget — messages go to <strong>Ollama</strong> via <code>OllamaClient</code> (no ruby_llm gem).</p>
+        <% if @ollama[:available] && @ollama[:model_installed] %>
+          <p class="dev-chat-meta dev-chat-meta--ok">Ollama ready — model: <%= @ollama[:model] %></p>
+        <% elsif @ollama[:available] %>
+          <p class="dev-chat-meta dev-chat-meta--error">Ollama running but model <%= @ollama[:model] %> not found. Run: <code>ollama create opploans-chat -f Modelfile.opploans</code></p>
+        <% else %>
+          <p class="dev-chat-meta dev-chat-meta--error"><%= @ollama[:error] %></p>
+        <% end %>
       </div>
 
-      <div class="dev-chat-panel" data-controller="dev-chat-simulator">
+      <div class="dev-chat-panel"
+           data-controller="dev-chat-simulator"
+           data-dev-chat-simulator-ollama-model-value="<%= @ollama[:model] %>">
         <div class="dev-chat-toolbar">
           <span data-dev-chat-simulator-target="status">Not connected</span>
           <button type="button" class="dev-chat-btn dev-chat-btn-secondary" data-action="click->dev-chat-simulator#resetSession">Reset Session</button>
@@ -61,7 +74,7 @@
 
         <form class="dev-chat-input" data-dev-chat-simulator-target="input" data-action="submit->dev-chat-simulator#sendMessage" style="display: none;">
           <div class="dev-chat-input-row">
-            <textarea data-dev-chat-simulator-target="textarea" placeholder="Type a message to the AI assistant..." rows="2"></textarea>
+            <textarea data-dev-chat-simulator-target="textarea" placeholder="Ask about OppLoans (e.g. What are your hours?)..." rows="2"></textarea>
             <button type="submit" class="dev-chat-btn">Send</button>
           </div>
         </form>
